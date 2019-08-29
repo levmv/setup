@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+D="\e[39m"
+B="\e[94m"
+
+IFS=" " read LOAD1 LOAD5 LOAD15 <<<$(cat /proc/loadavg | awk '{ print $1,$2,$3 }')
+
+IFS=" " read USED FREE TOTAL <<<$(free -htm | grep "Mem" | awk {'print $3,$4,$2'})
+
+root_usage=`df -h / | awk '/\// {print $(NF-1)}'`
+root_used=`df -h / | awk '/\// {print $(NF-2)}'`
+root_total=`df -h / | awk '/\// {print $(NF-3)}'`
+
+echo -e "
+$D `cat /etc/*release | grep "PRETTY_NAME" | cut -d "=" -f 2- | sed 's/"//g'` `uptime -p`
+$D LA...: $B$LOAD1$W, $B$LOAD5$W, $B$LOAD15$W
+$D Disk.: $B$root_used"/"$root_total ("$root_usage")
+$D Mem..: $B$USED$W used, $B$FREE$W free, $B$TOTAL$W total$W
+\e[39m"
+
+
+
