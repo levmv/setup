@@ -18,12 +18,3 @@ apt-get install -y software-properties-common build-essential debconf-utils git 
 
 sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
 
-
-cat <<EOF > /etc/sysctl.d/70-disable-ipv6.conf
-net.ipv6.conf.all.disable_ipv6 = 1
-EOF
-
-sudo sysctl -p -f /etc/sysctl.d/70-disable-ipv6.conf
-
-
-#python3-systemd

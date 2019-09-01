@@ -12,8 +12,6 @@ sudo apt install -y nginx
 mkdir /etc/nginx/certs
 mkdir /etc/nginx/sites
 
-chown acme.www-data /etc/nginx/certs
-chmod 710 /etc/nginx/certs
 
 cat <<EOF > /etc/nginx/sites/00-default
 server {
