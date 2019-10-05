@@ -34,8 +34,3 @@ sed -i -E 's/;?opcache.validate_timestamps\s=.*/opcache.validate_timestamps = 0/
 sed -i -E 's/;?opcache.save_comments\s*=.*/opcache.save_comments = 0/' /etc/php/7.3/fpm/php.ini
 sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.3/fpm/php.ini
 sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.3/cli/php.ini
-
-
-
-
-zend.assertions = -1
