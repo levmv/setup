@@ -40,3 +40,15 @@ mysql --user=root -p$MYSQLROOTPASS <<_EOF_
   FLUSH PRIVILEGES;
 _EOF_
 
+cat <<EOF > /etc/mysql/conf.d/my.cnf
+[mysqld]
+max_connections = 30
+
+key_buffer_size = 1M
+
+innodb_buffer_pool_size = 1G
+innodb_buffer_pool_instances = 1
+innodb_log_file_size    = 96M
+EOF
+
+service mysql restart
