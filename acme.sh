@@ -10,7 +10,7 @@ acme    ALL=(ALL) NOPASSWD: /bin/cat > /etc/nginx/acme
 EOF
 
 chmod 700 /var/lib/acme
-mkdir /etc/nginx/certs
+mkdir /etc/nginx/certs 2>/dev/null
 chown acme.www-data /etc/nginx/certs
 chmod 710 /etc/nginx/certs
 

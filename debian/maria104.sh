@@ -17,17 +17,17 @@ password=$MYSQLBACKUPPASS
 EOF
 
 
-sudo apt-get install software-properties-common
-sudo add-apt-repository 'deb [arch=amd64] http://sfo1.mirrors.digitalocean.com/mariadb/repo/10.4/debian buster main'
+apt-get install software-properties-common
+add-apt-repository 'deb [arch=amd64] http://sfo1.mirrors.digitalocean.com/mariadb/repo/10.4/debian buster main'
 
-sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
 
-sudo apt update
+apt update
 
 debconf-set-selections <<< "mariadb-server-10.4 mysql-server/root_password password ${MYSQLROOTPASS}"
 debconf-set-selections <<< "mariadb-server-10.4 mysql-server/root_password_again password ${MYSQLROOTPASS}"
 
-sudo apt-get install -y mariadb-server mariadb-client
+apt-get install -y mariadb-server mariadb-client
 
 mysql --user=root -p$MYSQLROOTPASS <<_EOF_
   DELETE FROM mysql.user WHERE User='';
