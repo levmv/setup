@@ -78,3 +78,7 @@ elif ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+if [ -z "$TMUX" ] && [[ ! "$TERM" =~ "screen" ]]; then
+    tmux attach || exec tmux new-session && exit;
+fi

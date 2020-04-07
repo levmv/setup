@@ -14,7 +14,8 @@ dpkg-reconfigure -f noninteractive tzdata
 sed -i 's/#FallbackNTP/FallbackNTP/' /etc/systemd/timesyncd.conf
 systemctl enable systemd-timesyncd.service && systemctl start systemd-timesyncd.service
 
-apt-get install -y software-properties-common build-essential debconf-utils git zip unzip curl screen figlet
+apt-get install -y software-properties-common build-essential debconf-utils git zip unzip curl wget vim nano sudo tmux figlet \
+                  procps htop apt-file
 
 sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
 
