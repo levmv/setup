@@ -8,4 +8,4 @@ if [ -z "$PASSWORD" ]; then
     exit
 fi
 
-openssl enc -d -aes-256-cbc -md sha256 -pbkdf2 -in $1 -k $2 | gunzip
+openssl enc -d -aes-256-cbc -md sha256 -pbkdf2 -in $1 -k $2 | unzstd

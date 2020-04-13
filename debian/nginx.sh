@@ -16,9 +16,8 @@ openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -keyout /etc/nginx/
 cat <<EOF > /etc/nginx/nginx.conf
 user www-data;
 worker_processes auto;
-
-worker_rlimit_nofile 10000;
-
+worker_rlimit_nofile 4096;
+pcre_jit on
 error_log  /var/log/nginx/error.log warn;
 pid        /var/run/nginx.pid;
 
@@ -38,13 +37,15 @@ http {
     sendfile on;
     tcp_nopush on;
 
-    keepalive_timeout   100;
-    keepalive_requests  200;
+    keepalive_timeout   90;
+    keepalive_requests  150;
 
-    client_body_timeout 35s;
+    client_body_timeout 20s;
     client_header_timeout 15s;
-
+    send_timeout 10s;
     reset_timedout_connection on;
+
+    client_max_body_size  2m;
 
     gzip on;
     gzip_min_length 500;
@@ -53,7 +54,6 @@ http {
     gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript image/svg+xml;
     gzip_comp_level 2;
 
-
     server {
         listen 80  default_server;
         listen 443 ssl default_server;
@@ -61,7 +61,7 @@ http {
         ssl_certificate /etc/nginx/certs/nginx.crt;
         ssl_certificate_key /etc/nginx/certs/nginx.key;
         ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
-        return       444;
+        return 444;
     }
 
     server {

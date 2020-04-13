@@ -25,10 +25,10 @@ echo "\$(.acme.sh/acme.sh --register-account | grep ACCOUNT_THUMBPRINT | awk -F 
 EOF
 
 cat <<EOF > /etc/nginx/acme
-
-location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
-    default_type text/plain;
-    return 200 "\$1.$(cat /var/lib/acme/thumbprint)";
-  }
-
+location /.well-known {
+    location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
+        default_type text/plain;
+        return 200 "\$1.$(cat /var/lib/acme/thumbprint)";
+    }
+}
 EOF

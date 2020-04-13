@@ -2,7 +2,7 @@
 
 DBNAME=$1
 OUTPATH=$2
-FILENAME=$DBNAME-`date +%F-%H%M-`$HOSTNAME".sql.gz.enc"
+FILENAME=$DBNAME-`date +%F-%H%M-`$HOSTNAME".sql.zst.enc"
 
-mysqldump --quick --lock-tables $DBNAME | gzip -5 | openssl enc -e -aes-256-cbc -md sha256 -pbkdf2 -kfile $HOME/.backuppass > $OUTPATH/$FILENAME
+mysqldump --skip-quick --lock-tables $DBNAME | zstd -c -7 | openssl enc -e -aes-256-cbc -md sha256 -pbkdf2 -kfile $HOME/.backuppass > $OUTPATH/$FILENAME
 

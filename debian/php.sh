@@ -22,16 +22,25 @@ php composer-setup.php --quiet
 mv composer.phar /usr/local/bin/composer
 rm composer-setup.php
 
-sed -i 's/memory_limit = .*/memory_limit = '128M'/' /etc/php/7.4/fpm/php.ini
-sed -i 's/upload_max_filesize = .*/upload_max_filesize = '15M'/' /etc/php/7.4/fpm/php.ini
-sed -i 's/post_max_size = .*/post_max_size = '15M'/' /etc/php/7.4/fpm/php.ini
-sed -i 's/;realpath_cache_size\s=.*/realpath_cache_size = '128k'/' /etc/php/7.4/fpm/php.ini
-sed -i 's/;realpath_cache_ttl\s=.*/realpath_cache_ttl = '3600'/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?expose_php = .*/expose_php = Off/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?session.use_strict_mode\s=.*/session.use_strict_mode = 1/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?opcache.memory_consumption\s?=.*/opcache.memory_consumption = 64/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?opcache.validate_timestamps\s?=.*/opcache.validate_timestamps = 0/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?opcache.enable_file_override\s?=.*/opcache.enable_file_override = 1/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?opcache.save_comments\s*=.*/opcache.save_comments = 0/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.4/fpm/php.ini
-sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.4/cli/php.ini
+cat <<EOF > /etc/php/7.4/fpm/conf.d/30-xcvb.ini
+memory_limit = 128M
+upload_max_filesize = 15M
+post_max_size = 15M
+realpath_cache_size = 128k
+realpath_cache_ttl =  3600
+expose_php = Off
+session.use_strict_mode = 1
+opcache.memory_consumption = 48
+opcache.validate_timestamps = 0
+opcache.enable_file_override = 1
+opcache.save_comments = 0
+opcache.interned_strings_buffer=4
+
+date.timezone = 'Europe/Moscow'
+mysqlnd.collect_statistics = Off
+session.cookie_samesite = Lax
+EOF
+
+cat <<EOF > /etc/php/7.4/cli/conf.d/30-xcvb.ini
+date.timezone = 'Europe/Moscow'
+EOF

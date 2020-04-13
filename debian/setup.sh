@@ -8,7 +8,7 @@ REPO="https://raw.githubusercontent.com/levmorozov/devops/master"
 user_exist=$(id -u $MAIN_USER > /dev/null 2>&1; echo $?)
 
 if [ $user_exist -eq "1" ]; then
-  useradd -m $MAIN_USER
+  adduser --disabled-password --gecos "" --shell /bin/bash $MAIN_USER
   USERHOME=/home/$MAIN_USER
   mkdir -p $USERHOME/.ssh
   cp ~/.ssh/authorized_keys $USERHOME/.ssh/authorized_keys
@@ -36,7 +36,7 @@ systemctl enable systemd-timesyncd.service && systemctl start systemd-timesyncd.
 
 apt-get install -y software-properties-common lsb-release apt-transport-https ca-certificates debconf-utils \
                    gnupg2 git zip unzip curl wget build-essential vim nano sudo tmux figlet procps htop apt-file \
-                   python3-pip python3-dev python3-venv libssl-dev libffi-dev
+                   python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd
 
 sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
 
