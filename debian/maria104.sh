@@ -34,7 +34,7 @@ mysql --user=root <<_EOF_
   DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
   DROP DATABASE IF EXISTS test;
   DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-  SET password = PASSWORD($MYSQLROOTPASS);
+  SET password = PASSWORD('$MYSQLROOTPASS');
   GRANT LOCK TABLES, SELECT ON *.* TO 'backupuser'@'127.0.0.1' IDENTIFIED BY '$MYSQLBACKUPPASS';
 
   FLUSH PRIVILEGES;
