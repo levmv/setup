@@ -17,7 +17,7 @@ password=$MYSQLBACKUPPASS
 EOF
 
 
-apt-get install software-properties-common
+apt-get install software-properties-common mariadb-devel
 add-apt-repository 'deb [arch=amd64] http://sfo1.mirrors.digitalocean.com/mariadb/repo/10.4/debian buster main'
 
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
@@ -35,7 +35,7 @@ mysql --user=root -p$MYSQLROOTPASS <<_EOF_
   DROP DATABASE IF EXISTS test;
   DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 
-  GRANT LOCK TABLES, SELECT ON *.* TO 'backupuser'@'%' IDENTIFIED BY '$MYSQLBACKUPPASS';
+  GRANT LOCK TABLES, SELECT ON *.* TO 'backupuser'@'127.0.0.1' IDENTIFIED BY '$MYSQLBACKUPPASS';
 
   FLUSH PRIVILEGES;
 _EOF_
@@ -44,11 +44,12 @@ cat <<EOF > /etc/mysql/conf.d/my.cnf
 [mysqld]
 max_connections = 30
 
+aria_pagecache_buffer_size = 1M
 key_buffer_size = 1M
 
-innodb_buffer_pool_size = 1G
+innodb_buffer_pool_size = 512M
 innodb_buffer_pool_instances = 1
-innodb_log_file_size    = 96M
+innodb_log_file_size    = 60M
 EOF
 
 service mysql restart
