@@ -17,7 +17,7 @@ cat <<EOF > /etc/nginx/nginx.conf
 user www-data;
 worker_processes auto;
 worker_rlimit_nofile 4096;
-pcre_jit on
+pcre_jit on;
 error_log  /var/log/nginx/error.log warn;
 pid        /var/run/nginx.pid;
 
