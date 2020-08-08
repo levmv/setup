@@ -5,8 +5,8 @@ echo "deb http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
 
 curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
 
-apt update
-apt install -y nginx
+apt-get update
+apt-get install -y nginx
 
 mkdir -p /etc/nginx/certs
 mkdir -p /etc/nginx/sites

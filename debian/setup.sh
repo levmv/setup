@@ -8,16 +8,15 @@ export DEBIAN_FRONTEND="noninteractive"
 
 sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 sed -i -e 's/# ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen
-echo 'LANG="ru_RU.UTF-8"' | tee /etc/default/locale > /dev/null
 dpkg-reconfigure --frontend=noninteractive locales
-update-locale LANG=ru_RU.UTF-8
+update-locale LANG=ru_RU.UTF-8 LC_MESSAGES=POSIX
 echo 'Europe/Moscow' | tee /etc/timezone > /dev/null
 ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
 
 sed -i 's/#FallbackNTP/FallbackNTP/' /etc/systemd/timesyncd.conf
 systemctl enable systemd-timesyncd.service && systemctl start systemd-timesyncd.service
-
+apt-get update && apt-get dist-upgrade -y
 apt-get install -y software-properties-common lsb-release apt-transport-https ca-certificates debconf-utils \
                    gnupg2 git zip unzip curl wget build-essential vim nano sudo tmux figlet procps htop apt-file \
                    python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd
@@ -67,5 +66,8 @@ chmod +x *.sh
 #. acme.sh
 
 rm nginx.sh maria105.sh php.sh yarn.sh
+
+apt-get autoremove -y
+apt-get clean
 
 
