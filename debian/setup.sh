@@ -51,7 +51,7 @@ fi
 
 wget -i - <<EOF
 $REPO/debian/nginx.sh
-$REPO/debian/maria104.sh
+$REPO/debian/maria105.sh
 $REPO/debian/php.sh
 $REPO/debian/yarn.sh
 $REPO/acme.sh
@@ -61,11 +61,11 @@ EOF
 chmod +x *.sh
 
 . nginx.sh
-. maria104.sh
+. maria105.sh
 . php.sh
 . yarn.sh
-. acme.sh
+#. acme.sh
 
-rm nginx.sh maria104.sh php.sh yarn.sh acme.sh
+rm nginx.sh maria105.sh php.sh yarn.sh
 
 
