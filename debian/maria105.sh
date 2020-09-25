@@ -19,11 +19,18 @@ EOF
 
 apt-get install software-properties-common dirmngr
 apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
-add-apt-repository 'deb [arch=amd64] https://mirrors.n-ix.net/mariadb/repo/10.5/debian buster main'
+
+
+echo "deb http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
+
+tee /etc/apt/sources.list.d/mariadb.list <<EOF
+deb [arch=amd64] http://mirror.mephi.ru/mariadb/repo/10.5/debian $(lsb_release -cs) main
+deb-src http://mirror.mephi.ru/mariadb/repo/10.5/debian $(lsb_release -cs) main
+EOF
 
 apt-get update
 
-apt-get install -y mariadb-server mariadb-client libmariadb-dev
+apt-get install -y mariadb-server=1:10.5* mariadb-client=1:10.5* libmariadb-dev=1:10.5*
 
 mysql --user=root <<_EOF_
   DELETE FROM mysql.user WHERE User='';
@@ -36,7 +43,7 @@ mysql --user=root <<_EOF_
   FLUSH PRIVILEGES;
 _EOF_
 
-cat <<EOF > /etc/mysql/conf.d/my.cnf
+cat <<EOF > /etc/mysql/mariadb.conf.d/72-my.cnf
 [mysqld]
 max_connections = 20
 
