@@ -7,7 +7,7 @@ IFS=" " read LOAD1 LOAD5 LOAD15 <<<$(cat /proc/loadavg | awk '{ print $1,$2,$3 }
 
 IFS=" " read USED FREE TOTAL <<<$(free -htm | grep "Mem" | awk {'print $3,$4,$2'})
 
-DISKS=$(df -PTh | grep -v 'tmpfs\|loop\|s3fs' | awk -v red="$(tput setaf 1)" -v yellow="$(tput setaf 3)" -v reset="$(tput sgr0)" \
+DISKS=$(df -PTh | grep -v 'tmpfs\|loop\|s3fs\|vfat' | awk -v red="$(tput setaf 1)" -v yellow="$(tput setaf 3)" -v reset="$(tput sgr0)" \
 'NR>1 {
     if (int($6)>90) color=red; else if (int($6)>70) color=yellow; else color=""
     printf "%s\t%s\t%s(%s)%s\t%s\n", $4, $3, color, $6, reset, $7
