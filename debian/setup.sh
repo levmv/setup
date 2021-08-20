@@ -55,7 +55,6 @@ $REPO/debian/maria106.sh
 $REPO/debian/php.sh
 $REPO/debian/yarn.sh
 $REPO/acme.sh
-#$REPO/dbdump.sh
 EOF
 
 chmod +x *.sh

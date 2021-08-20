@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
-echo "deb http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
-    | tee /etc/apt/sources.list.d/nginx.list
+curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
+    | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
 
-curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
+    | sudo tee /etc/apt/sources.list.d/nginx.list
 
-apt-get update
-apt-get install -y nginx
+echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" \
+    | sudo tee /etc/apt/preferences.d/99nginx
+
+apt update
+apt install -y nginx
 
 mkdir -p /etc/nginx/certs
 mkdir -p /etc/nginx/sites
@@ -78,3 +83,5 @@ http {
     include /etc/nginx/sites/*;
 }
 EOF
+
+systemctl enable --now nginx

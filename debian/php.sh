@@ -4,22 +4,14 @@ wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
 echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php8.0.list
 
 apt update
-apt install -y php8.0-{fpm,dev,gd,curl,pear,apcu,intl,xml,zip,mbstring,mysql}
+apt install -y php8.0-{fpm,dev,gd,curl,pear,apcu,intl,xml,zip,mbstring,mysql} php-pear
 
-EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-ACTUAL_SIGNATURE="$(php -r "echo hash_file('SHA384', 'composer-setup.php');")"
+php -r "if (hash_file('sha384', 'composer-setup.php') === '756890a4488ce9024fc62c56153228907f1545c228516cbf63f885e036d37e9a59d27d63f46af1d4d07ee0f76181c7d3') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
 
-if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
-then
-    >&2 echo 'ERROR: Invalid installer signature'
-    rm composer-setup.php
-    exit 1
-fi
-
-php composer-setup.php --quiet
 mv composer.phar /usr/local/bin/composer
-rm composer-setup.php
 
 cat <<EOF > /etc/php/8.0/fpm/conf.d/30-xcvb.ini
 memory_limit = 128M

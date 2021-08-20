@@ -18,7 +18,10 @@ EOF
 
 
 apt-get install software-properties-common dirmngr
-apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+
+curl -LsSO https://mariadb.org/mariadb_release_signing_key.asc
+chmod -c 644 mariadb_release_signing_key.asc
+mv -vi mariadb_release_signing_key.asc /etc/apt/trusted.gpg.d/ # FIXME
 
 add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://ams2.mirrors.digitalocean.com/mariadb/repo/10.6/debian bullseye main'
 
