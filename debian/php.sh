@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
 wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.4.list
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php8.0.list
 
 apt update
-apt install -y php7.4 php7.4-fpm php7.4-dev php7.4-gd php7.4-curl php-pear \
-                php-apcu php7.4-intl php7.4-xml php7.4-zip php7.4-mbstring php7.4-mysql
+apt install -y php8.0-{fpm,dev,gd,curl,pear,apcu,intl,xml,zip,mbstring,mysql}
 
 EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -22,7 +21,7 @@ php composer-setup.php --quiet
 mv composer.phar /usr/local/bin/composer
 rm composer-setup.php
 
-cat <<EOF > /etc/php/7.4/fpm/conf.d/30-xcvb.ini
+cat <<EOF > /etc/php/8.0/fpm/conf.d/30-xcvb.ini
 memory_limit = 128M
 upload_max_filesize = 15M
 post_max_size = 15M
@@ -41,6 +40,6 @@ mysqlnd.collect_statistics = Off
 session.cookie_samesite = Lax
 EOF
 
-cat <<EOF > /etc/php/7.4/cli/conf.d/30-xcvb.ini
+cat <<EOF > /etc/php/8.0/cli/conf.d/30-xcvb.ini
 date.timezone = 'Europe/Moscow'
 EOF

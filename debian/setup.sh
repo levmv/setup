@@ -6,22 +6,23 @@ REPO="https://raw.githubusercontent.com/levmorozov/devops/master"
 
 export DEBIAN_FRONTEND="noninteractive"
 
-sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
-sed -i -e 's/# ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen
-dpkg-reconfigure --frontend=noninteractive locales
-update-locale LANG=ru_RU.UTF-8 LC_MESSAGES=POSIX
-echo 'Europe/Moscow' | tee /etc/timezone > /dev/null
-ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-dpkg-reconfigure -f noninteractive tzdata
+#sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+#sed -i -e 's/# ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen
+#dpkg-reconfigure --frontend=noninteractive locales
+#update-locale LANG=ru_RU.UTF-8 LC_MESSAGES=POSIX
 
-sed -i 's/#FallbackNTP/FallbackNTP/' /etc/systemd/timesyncd.conf
-systemctl enable systemd-timesyncd.service && systemctl start systemd-timesyncd.service
+localectl set-locale ru_RU.UTF-8
+timedatectl set-timezone Europe/Moscow
+
+sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
+systemctl restart systemd-journald
+
 apt-get update && apt-get dist-upgrade -y
 apt-get install -y software-properties-common lsb-release apt-transport-https ca-certificates debconf-utils \
                    gnupg2 git zip unzip curl wget build-essential vim nano sudo tmux figlet procps htop apt-file \
                    python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd libfcgi-bin vnstat sysstat
 
-sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
+
 
 rm /etc/update-motd.d/*
 wget -O /etc/update-motd.d/10-hostname $REPO/motd/10-hostname
@@ -50,22 +51,22 @@ fi
 
 wget -i - <<EOF
 $REPO/debian/nginx.sh
-$REPO/debian/maria105.sh
+$REPO/debian/maria106.sh
 $REPO/debian/php.sh
 $REPO/debian/yarn.sh
 $REPO/acme.sh
-$REPO/dbdump.sh
+#$REPO/dbdump.sh
 EOF
 
 chmod +x *.sh
 
 . nginx.sh
-. maria105.sh
+. maria106.sh
 . php.sh
 . yarn.sh
 #. acme.sh
 
-rm nginx.sh maria105.sh php.sh yarn.sh
+rm nginx.sh maria106.sh php.sh yarn.sh
 
 apt-get autoremove -y
 apt-get clean
