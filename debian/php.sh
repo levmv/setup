@@ -4,7 +4,7 @@ wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
 echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php8.0.list
 
 apt update
-apt install -y php8.0-{fpm,dev,gd,curl,pear,apcu,intl,xml,zip,mbstring,mysql} php-pear
+apt install -y php8.0-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} php-pear
 
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
 php -r "if (hash_file('sha384', 'composer-setup.php') === '756890a4488ce9024fc62c56153228907f1545c228516cbf63f885e036d37e9a59d27d63f46af1d4d07ee0f76181c7d3') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"

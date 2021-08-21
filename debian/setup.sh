@@ -11,7 +11,7 @@ export DEBIAN_FRONTEND="noninteractive"
 #dpkg-reconfigure --frontend=noninteractive locales
 #update-locale LANG=ru_RU.UTF-8 LC_MESSAGES=POSIX
 
-localectl set-locale ru_RU.UTF-8
+localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8
 timedatectl set-timezone Europe/Moscow
 
 sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
@@ -20,7 +20,7 @@ systemctl restart systemd-journald
 apt-get update && apt-get dist-upgrade -y
 apt-get install -y software-properties-common lsb-release apt-transport-https ca-certificates debconf-utils \
                    gnupg2 git zip unzip curl wget build-essential vim nano sudo tmux figlet procps htop apt-file \
-                   python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd libfcgi-bin vnstat sysstat
+                   python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd libfcgi-bin vnstat
 
 
 
@@ -63,9 +63,9 @@ chmod +x *.sh
 . maria106.sh
 . php.sh
 . yarn.sh
-#. acme.sh
+. acme.sh
 
-rm nginx.sh maria106.sh php.sh yarn.sh
+rm nginx.sh maria106.sh php.sh yarn.sh acme.sh
 
 apt-get autoremove -y
 apt-get clean
