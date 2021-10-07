@@ -5,15 +5,18 @@ BOXUSER="vagrant"
 useradd $BOXUSER -d /home/$BOXUSER -m -s /bin/bash
 echo $BOXUSER:$BOXUSER | chpasswd
 
-mkdir /home/$BOXUSER/.ssh/
-cp id_rsa /home/$BOXUSER/.ssh/
-cp id_rsa.pub /home/$BOXUSER/.ssh/
-cp id_rsa.pub /home/$BOXUSER/.ssh/authorized_keys
+groupmod -g 1001 vagrant
 
-chmod 700 /home/$BOXUSER/.ssh
-chmod 600 /home/$BOXUSER/.ssh/id_rsa
-chmod 644 /home/$BOXUSER/.ssh/id_rsa.pub
-chown -R $BOXUSER.$BOXUSER /home/$BOXUSER/.ssh
+#mkdir /home/$BOXUSER/.ssh/
+#cp id_rsa /home/$BOXUSER/.ssh/
+#cp id_rsa.pub /home/$BOXUSER/.ssh/
+#cp id_rsa.pub /home/$BOXUSER/.ssh/authorized_keys
+
+#chmod 700 /home/$BOXUSER/.ssh
+#chmod 600 /home/$BOXUSER/.ssh/id_rsa
+#chmod 644 /home/$BOXUSER/.ssh/id_rsa.pub
+#chown -R $BOXUSER.$BOXUSER /home/$BOXUSER/.ssh
+
 
 
 apt-get update
@@ -26,49 +29,52 @@ usermod -aG sudo $BOXUSER
 
 ln -s /media/dev /home/$BOXUSER/dev
 
-rm .set.sh id_rsa id_rsa.pub
+#rm .set.sh id_rsa id_rsa.pub
 
 export DEBIAN_FRONTEND="noninteractive"
 
-sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
-sed -i -e 's/# ru_RU.UTF-8 UTF-8/ru_RU.UTF-8 UTF-8/' /etc/locale.gen
-echo 'LANG="ru_RU.UTF-8"' | tee /etc/default/locale > /dev/null
-dpkg-reconfigure --frontend=noninteractive locales
-update-locale LANG=ru_RU.UTF-8
-echo 'Europe/Moscow' | tee /etc/timezone > /dev/null
-ln -sf /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-dpkg-reconfigure -f noninteractive tzdata
-
-sed -i 's/#FallbackNTP/FallbackNTP/' /etc/systemd/timesyncd.conf
-systemctl enable systemd-timesyncd.service && systemctl start systemd-timesyncd.service
+localectl set-locale LANG=ru_RU.UTF-8 LC_MESSAGES=en_US.UTF-8
+timedatectl set-timezone Europe/Moscow
 
 sed -i -e '/#SystemMaxUse=/s/#SystemMaxUse=/SystemMaxUse=200M/g' /etc/systemd/journald.conf
-
+systemctl restart systemd-journald
 
 # Apt sources:
 # nginx
-echo "deb http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
-    | tee /etc/apt/sources.list.d/nginx.list
-curl -fsSL https://nginx.org/keys/nginx_signing.key | apt-key add -
+curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
+    | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
+
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
+http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
+    | sudo tee /etc/apt/sources.list.d/nginx.list
+
+echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" \
+    | sudo tee /etc/apt/preferences.d/99nginx
 
 # php
 wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.3.list
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php8.0.list
 
 # mariadb
-add-apt-repository 'deb [arch=amd64] http://sfo1.mirrors.digitalocean.com/mariadb/repo/10.4/debian buster main'
-apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+curl -LsSO https://mariadb.org/mariadb_release_signing_key.asc
+chmod -c 644 mariadb_release_signing_key.asc
+mv -vi mariadb_release_signing_key.asc /etc/apt/trusted.gpg.d/ # FIXME
+
+add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://ams2.mirrors.digitalocean.com/mariadb/repo/10.6/debian bullseye main'
+
+#node
+curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
 
 # yarn
-curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /usr/share/keyrings/yarnkey.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | tee /etc/apt/sources.list.d/yarn.list
+
 
 apt-get update
 
-
 apt-get install -y nginx
 
-mkdir /etc/nginx/sites
+mkdir -p /etc/nginx/sites
 
 cat <<EOF > /etc/nginx/nginx.conf
 user www-data;
@@ -114,33 +120,37 @@ EOF
 
 service nginx restart
 
-apt-get install -y php7.3 php7.3-fpm php7.3-dev php7.3-gd php7.3-curl php-pear \
-                php-apcu php7.3-intl php7.3-xml php7.3-zip php7.3-mbstring php7.3-mysql
+apt install -y php8.0-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} php-pear
 
-EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-ACTUAL_SIGNATURE="$(php -r "echo hash_file('SHA384', 'composer-setup.php');")"
+php -r "if (hash_file('sha384', 'composer-setup.php') === '756890a4488ce9024fc62c56153228907f1545c228516cbf63f885e036d37e9a59d27d63f46af1d4d07ee0f76181c7d3') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
 
-if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]
-then
-    >&2 echo 'ERROR: Invalid installer signature'
-    rm composer-setup.php
-    exit 1
-fi
-
-php composer-setup.php --quiet
 mv composer.phar /usr/local/bin/composer
-rm composer-setup.php
 
-sed -i 's/memory_limit = .*/memory_limit = '128M'/' /etc/php/7.3/fpm/php.ini
-sed -i 's/upload_max_filesize = .*/upload_max_filesize = '15M'/' /etc/php/7.3/fpm/php.ini
-sed -i 's/post_max_size = .*/post_max_size = '15M'/' /etc/php/7.3/fpm/php.ini
-sed -i 's/;realpath_cache_size\s=.*/realpath_cache_size = '128k'/' /etc/php/7.3/fpm/php.ini
-sed -i -E 's/;?expose_php = .*/expose_php = Off/' /etc/php/7.3/fpm/php.ini
-sed -i -E 's/;?session.use_strict_mode\s=.*/session.use_strict_mode = 1/' /etc/php/7.3/fpm/php.ini
-sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.3/fpm/php.ini
-sed -i -E 's/;?date.timezone =/date.timezone = 'Europe\\/Moscow'/' /etc/php/7.3/cli/php.ini
 
+cat <<EOF > /etc/php/8.0/fpm/conf.d/30-xcvb.ini
+memory_limit = 128M
+upload_max_filesize = 15M
+post_max_size = 15M
+realpath_cache_size = 128k
+realpath_cache_ttl =  3600
+expose_php = Off
+session.use_strict_mode = 1
+opcache.interned_strings_buffer=4
+zend.assertions = 1
+
+date.timezone = 'Europe/Moscow'
+mysqlnd.collect_statistics = Off
+session.cookie_samesite = Lax
+EOF
+
+cat <<EOF > /etc/php/8.0/cli/conf.d/30-xcvb.ini
+date.timezone = 'Europe/Moscow'
+EOF
+
+exit
 
 cat <<EOF > /root/.my.cnf
 [client]
@@ -150,36 +160,29 @@ password = localroot
 EOF
 cp /root/.my.cnf /home/$BOXUSER/
 chown $BOXUSER:$BOXUSER /home/$BOXUSER/.my.cnf
-
-#debconf-set-selections <<< "mariadb-server-10.4 mysql-server/root_password password localroot"
-#debconf-set-selections <<< "mariadb-server-10.4 mysql-server/root_password_again password localroot"
-
-apt-get install -y mariadb-server mariadb-client
+apt-get install -y mariadb-server=1:10.6* mariadb-client=1:10.6* libmariadb-dev=1:10.6*
 
 mysql --user=root <<_EOF_
-
-  UPDATE mysql.global_priv SET priv=json_set(priv, '$.plugin', 'mysql_native_password', '$.authentication_string', PASSWORD('localroot')) WHERE User='root';
-
-  DELETE FROM mysql.global_priv WHERE User='';
-  DELETE FROM mysql.global_priv WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+  DELETE FROM mysql.user WHERE User='';
+  DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
   DROP DATABASE IF EXISTS test;
   DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-
+  SET password = PASSWORD('localroot');
   FLUSH PRIVILEGES;
 _EOF_
 
-cat <<EOF > /etc/mysql/conf.d/my.cnf
+cat <<EOF > /etc/mysql/mariadb.conf.d/72-my.cnf
 [mysqld]
-max_connections = 30
+max_connections = 20
 
+aria_pagecache_buffer_size = 1M
 key_buffer_size = 1M
 
-innodb_buffer_pool_size = 1G
-innodb_buffer_pool_instances = 1
+innodb_buffer_pool_size = 1GB
 innodb_log_file_size    = 96M
 EOF
 
 service mysql restart
 
-curl -sL https://deb.nodesource.com/setup_12.x | bash -
-apt-get install -y nodejs yarn
+
+apt install -y nodejs yarn

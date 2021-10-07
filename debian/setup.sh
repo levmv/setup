@@ -20,7 +20,7 @@ systemctl restart systemd-journald
 apt-get update && apt-get dist-upgrade -y
 apt-get install -y software-properties-common lsb-release apt-transport-https ca-certificates debconf-utils \
                    gnupg2 git zip unzip curl wget build-essential vim nano sudo tmux figlet procps htop apt-file \
-                   python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd libfcgi-bin vnstat
+                   python3-pip python3-dev python3-venv libssl-dev libffi-dev zstd libfcgi-bin #vnstat
 
 
 
