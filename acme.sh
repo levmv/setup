@@ -2,7 +2,8 @@
 set -euxo pipefail
 
 curl https://get.acme.sh | sh
-/root/.acme.sh/acme.sh --register-account -m mail@levmorozov.ru | grep ACCOUNT_THUMBPRINT | awk -F "=" '{print $2}' | tr -d \' | tee thumbprint
+/root/.acme.sh/acme.sh --set-default-ca  --server  letsencrypt
+/root/.acme.sh/acme.sh --register-account --accountemail | grep ACCOUNT_THUMBPRINT | awk -F "=" '{print $2}' | tr -d \' | tee thumbprint
 tee /etc/nginx/acme <<EOF
 location /.well-known {
     location ~ ^/\.well-known/acme-challenge/([-_a-zA-Z0-9]+)$ {
