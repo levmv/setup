@@ -50,7 +50,7 @@ http {
     send_timeout 10s;
     reset_timedout_connection on;
 
-    client_max_body_size  2m;
+    client_max_body_size  25m;
 
     gzip on;
     gzip_min_length 500;

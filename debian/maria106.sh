@@ -47,8 +47,8 @@ max_connections = 20
 aria_pagecache_buffer_size = 1M
 key_buffer_size = 1M
 
-innodb_buffer_pool_size = 100M
-innodb_log_file_size    = 25M
+innodb_buffer_pool_size = 80M
+innodb_log_file_size    = 20M
 EOF
 
 service mysql restart

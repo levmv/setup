@@ -8,7 +8,12 @@ alias l='ls -CF'
 alias lh='ls -lh'
 
 alias paux='ps aux | grep'
-alias ..='cd ..'
+#alias ..='cd ..'
 
 alias df='df -Th'
 alias du='du -h'
+
+
+function ..() {
+    cd $(printf '../%.0s' $(seq 1 $1))
+}
