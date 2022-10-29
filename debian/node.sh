@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
 
-curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - &&\
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&\
 apt-get install -y nodejs
-
-corepack enable
