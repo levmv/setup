@@ -8,7 +8,7 @@ TMPDEPS="libglib2.0-dev libwebp-dev libjpeg62-turbo-dev libexpat1-dev libexif-de
 sudo apt-get install -y automake build-essential php8.1-dev  php-pear $TMPDEPS
 
 wget -qO- https://github.com/libvips/libvips/releases/download/v$VER/vips-$VER.tar.gz | tar zxv
-cd ./vips-$VER
+pushd ./vips-$VER
 
 
 FLAGS="-O2 -march=native -ffast-math -ftree-vectorize"
@@ -19,13 +19,14 @@ make
 sudo make install
 ldconfig
 
-if yes | sudo pecl install vips; then
-  for php_ini in $( sudo find /etc -type f -iname 'php*.ini' ); do
-    php_conf="$( dirname "$php_ini" )/conf.d"
-    echo "extension=vips.so" | sudo tee "$php_conf/20-vips.ini" >/dev/null
-  done
-else
-  printf "\n\033[0;31mPecl libvips failed \033[0m\n\n"
+if ! pecl list | grep vips >/dev/null 2>&1;
+then
+    yes | sudo pecl install foo
+     for php_ini in $( sudo find /etc -type f -iname 'php*.ini' ); do
+        php_conf="$( dirname "$php_ini" )/conf.d"
+        echo "extension=vips.so" | sudo tee "$php_conf/20-vips.ini" >/dev/null
+      done
 fi
 
+popd
 sudo apt -y remove $TMPDEPS
