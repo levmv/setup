@@ -19,14 +19,11 @@ make
 sudo make install
 ldconfig
 
-if ! pecl list | grep vips >/dev/null 2>&1;
-then
-    yes | sudo pecl install vips || true
-     for php_ini in $( sudo find /etc -type f -iname 'php*.ini' ); do
-        php_conf="$( dirname "$php_ini" )/conf.d"
-        echo "extension=vips.so" | sudo tee "$php_conf/20-vips.ini" >/dev/null
-      done
-fi
+yes | sudo pecl install vips || true
+for php_ini in $( sudo find /etc -type f -iname 'php*.ini' ); do
+  php_conf="$( dirname "$php_ini" )/conf.d"
+  echo "extension=vips.so" | sudo tee "$php_conf/20-vips.ini" >/dev/null
+done
 
 popd
 sudo apt -y remove $TMPDEPS
