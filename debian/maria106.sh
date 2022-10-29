@@ -16,16 +16,10 @@ user=backupuser
 password=$MYSQLBACKUPPASS
 EOF
 
+DBVER=${DBVER:-10.6}
 
-apt-get install software-properties-common dirmngr
-
-curl -LsSO https://mariadb.org/mariadb_release_signing_key.asc
-chmod -c 644 mariadb_release_signing_key.asc
-mv -vi mariadb_release_signing_key.asc /etc/apt/trusted.gpg.d/ # FIXME
-
-add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://ams2.mirrors.digitalocean.com/mariadb/repo/10.6/debian bullseye main'
-
-apt-get update
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-$DBVER" --skip-maxscale
+apt update
 
 apt-get install -y mariadb-server=1:10.6* mariadb-client=1:10.6* libmariadb-dev=1:10.6*
 
