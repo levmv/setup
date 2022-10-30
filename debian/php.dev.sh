@@ -38,3 +38,5 @@ EOF
 cat <<EOF > /etc/php/8.1/cli/conf.d/30-xcvb.ini
 date.timezone = 'Europe/Moscow'
 EOF
+
+service php8.1-fpm reload
