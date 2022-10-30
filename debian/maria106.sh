@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euxo pipefail
 
 export DEBIAN_FRONTEND="noninteractive"
 
@@ -21,7 +22,7 @@ DBVER=${DBVER:-10.6}
 curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-$DBVER" --skip-maxscale
 apt update
 
-apt-get install -y mariadb-server=1:10.6* mariadb-client=1:10.6* libmariadb-dev=1:10.6*
+apt-get install -y --no-install-recommends mariadb-server=1:10.6* mariadb-client=1:10.6* libmariadb-dev=1:10.6*
 
 mysql --user=root <<_EOF_
   DELETE FROM mysql.user WHERE User='';

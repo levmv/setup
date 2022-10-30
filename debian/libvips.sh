@@ -3,7 +3,7 @@
 VER="8.13.2"
 
 sudo apt-get install -y automake build-essential php-pear php8.1-dev  libglib2.0-dev  libwebp-dev libjpeg62-turbo-dev \
-                        libexpat1-dev libexif-dev libpng-devliblcms2-dev libmagickcore-dev libtiff5-dev \
+                        libexpat1-dev libexif-dev libpng-dev liblcms2-dev libmagickcore-dev libtiff5-dev \
                         libpoppler-glib-dev libopenslide-dev libpango1.0-dev liborc-0.4-dev libheif-dev
 
 wget -qO- https://github.com/libvips/libvips/releases/download/v$VER/vips-$VER.tar.gz | tar zxv
