@@ -25,3 +25,5 @@ for php_ini in $( sudo find /etc/php -type f -iname 'php*.ini' ); do
 done
 
 popd
+
+sudo service 'php*-fpm' reload
