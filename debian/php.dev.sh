@@ -24,6 +24,7 @@ rm composer-setup.php
 mv composer.phar /usr/local/bin/composer
 
 cat <<EOF > /etc/php/8.1/fpm/conf.d/30-xcvb.ini
+error_reporting = E_ALL
 memory_limit = 128M
 upload_max_filesize = 25M
 post_max_size = 25M
