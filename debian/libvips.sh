@@ -17,6 +17,7 @@ meson setup build --prefix=/usr/local --buildtype=release -Ddeprecated=false -Di
 meson compile -C build
 #meson test -C build
 sudo meson install -C build
+sudo ldconfig
 
 popd
 
