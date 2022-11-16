@@ -3,11 +3,18 @@ set -euxo pipefail
 
 VER="8.1"
 
-wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php$VER.list
+if [ $(lsb_release -is) = "Debian" ]; then
+  sudo apt-get update
+  sudo apt-get -y install apt-transport-https lsb-release ca-certificates curl
+  sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+  sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+  sudo apt-get update
+else
+  sudo add-apt-repository ppa:ondrej/php
+  sudo apt update
+fi
 
-apt update
-apt install -y php$VER-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} libffi-dev
+sudo apt install -y php$VER-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} libffi-dev
 
 EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
