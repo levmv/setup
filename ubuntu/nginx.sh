@@ -27,7 +27,7 @@ mkdir -p /etc/nginx/sites
 
 openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes -keyout /etc/nginx/certs/nginx.key -out /etc/nginx/certs/nginx.crt -subj /CN=_
 
-cat <<EOF > /etc/nginx/nginx.conf
+cat <<\EOF > /etc/nginx/nginx.conf
 user www-data;
 worker_processes auto;
 worker_rlimit_nofile 4096;
