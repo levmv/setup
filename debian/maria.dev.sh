@@ -19,8 +19,8 @@ cat <<EOF > /root/.my.cnf
   password = localroot
 EOF
 
-cp /root/.my.cnf /home/$USERNAME/
-chown $USERNAME:$USERNAME /home/$USERNAME/.my.cnf
+cp /root/.my.cnf /home/$USERN/
+chown $USERN:$USERN /home/$USERN/.my.cnf
 apt-get install -yq --no-install-recommends  mariadb-server=1:$DBVER* mariadb-client=1:$DBVER* libmariadb-dev=1:$DBVER*
 
 mysql --user=root <<_EOF_
