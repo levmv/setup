@@ -10,6 +10,8 @@ deb [arch=amd64] http://mirror.mephi.ru/mariadb/repo/$DBVER/debian $(lsb_release
 deb-src http://mirror.mephi.ru/mariadb/repo/$DBVER/debian $(lsb_release -cs) main
 EOF
 
+apt update
+
 cat <<EOF > /root/.my.cnf
 [client]
   host     = localhost
