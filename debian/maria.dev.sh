@@ -12,9 +12,9 @@ cat <<EOF > /root/.my.cnf
   password = localroot
 EOF
 
-cp /root/.my.cnf /home/$MAIN_USER/
-chown $MAIN_USER:$MAIN_USER /home/$MAIN_USER/.my.cnf
-apt-get install -y mariadb-server=1:$DBVER* mariadb-client=1:$DBVER* libmariadb-dev=1:$DBVER*
+cp /root/.my.cnf /home/$USER/
+chown $USER:$USER /home/$USER/.my.cnf
+apt-get install -yq --no-install-recommends  mariadb-server=1:$DBVER* mariadb-client=1:$DBVER* libmariadb-dev=1:$DBVER*
 
 mysql --user=root <<_EOF_
     DELETE FROM mysql.user WHERE User='';

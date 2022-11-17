@@ -10,11 +10,11 @@ if [ $(lsb_release -is) = "Debian" ]; then
   sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
   sudo apt-get update
 else
-  sudo add-apt-repository ppa:ondrej/php
+  sudo add-apt-repository -y ppa:ondrej/php
   sudo apt update
 fi
 
-sudo apt install -y php$VER-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} libffi-dev
+sudo apt install -yq --no-install-recommends php$VER-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} libffi-dev
 
 EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"

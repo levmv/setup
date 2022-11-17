@@ -11,7 +11,7 @@ echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 
     | sudo tee /etc/apt/preferences.d/99nginx
 
 apt update
-apt install -y nginx
+apt install -yq nginx
 
 mkdir -p /etc/nginx/certs
 mkdir -p /etc/nginx/sites

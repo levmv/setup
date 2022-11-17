@@ -2,10 +2,11 @@
 
 VER="8.13.3"
 
-sudo apt-get install -y meson automake build-essential libglib2.0-dev libwebp-dev libjpeg62-turbo-dev \
-                        libexpat1-dev libexif-dev libpng-dev liblcms2-dev libmagickcore-dev libtiff5-dev \
-                        libpoppler-glib-dev libpango1.0-dev liborc-0.4-dev libheif-dev
-# libopenslide-dev
+sudo apt-get install -yq meson automake build-essential libglib2.0-dev libwebp-dev libjpeg62-turbo-dev \
+                        libexpat1-dev libexif-dev libpng-dev liblcms2-dev libmagickcore-dev \
+                        libpoppler-glib-dev libpango1.0-dev libheif-dev liborc-0.4-dev
+# Vdm? libtiff5-dev
+#libopenslide-dev
 #fftw3?
 #libspng?
 wget -qO- https://github.com/libvips/libvips/releases/download/v$VER/vips-$VER.tar.gz | tar zxv
