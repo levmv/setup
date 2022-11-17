@@ -2,8 +2,13 @@
 
 DBVER=${DBVER:-10.6}
 
-curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-$DBVER" --skip-maxscale
-apt update
+apt-get install software-properties-common dirmngr
+apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+
+tee /etc/apt/sources.list.d/mariadb.list <<EOF
+deb [arch=amd64] http://mirror.mephi.ru/mariadb/repo/$DBVER/debian $(lsb_release -cs) main
+deb-src http://mirror.mephi.ru/mariadb/repo/$DBVER/debian $(lsb_release -cs) main
+EOF
 
 cat <<EOF > /root/.my.cnf
 [client]
