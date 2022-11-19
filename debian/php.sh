@@ -44,3 +44,6 @@ EOF
 cat <<EOF > /etc/php/8.1/cli/conf.d/30-xcvb.ini
 date.timezone = 'Europe/Moscow'
 EOF
+
+echo "ffi.enable = true" >> /etc/php/$VER/cli/conf.d/20-ffi.ini
+echo "ffi.enable = true" >> /etc/php/$VER/fpm/conf.d/20-ffi.ini

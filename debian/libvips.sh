@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euxo pipefail
 
 VER="8.13.3"
 
@@ -9,7 +10,7 @@ sudo apt-get install -yq meson automake build-essential libglib2.0-dev libwebp-d
 #libopenslide-dev
 #fftw3?
 #libspng?
-wget -qO- https://github.com/libvips/libvips/releases/download/v$VER/vips-$VER.tar.gz | tar zxv
+wget -O- https://github.com/libvips/libvips/releases/download/v$VER/vips-$VER.tar.gz | tar zxv
 
 pushd ./vips-$VER
 
