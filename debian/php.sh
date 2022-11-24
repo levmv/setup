@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+VER="8.1"
+
 wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php8.1.list
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php$VER.list
 
 apt update
-apt install -y php8.1-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} php-pear
+apt install -y php$VER-{fpm,dev,gd,curl,apcu,intl,xml,zip,mbstring,mysql} libffi-dev
 
 EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -22,7 +24,7 @@ rm composer-setup.php
 
 mv composer.phar /usr/local/bin/composer
 
-cat <<EOF > /etc/php/8.1/fpm/conf.d/30-xcvb.ini
+cat <<EOF > /etc/php/$VER/fpm/conf.d/30-xcvb.ini
 memory_limit = 128M
 upload_max_filesize = 25M
 post_max_size = 25M
@@ -41,7 +43,7 @@ mysqlnd.collect_statistics = Off
 session.cookie_samesite = Lax
 EOF
 
-cat <<EOF > /etc/php/8.1/cli/conf.d/30-xcvb.ini
+cat <<EOF > /etc/php/$VER/cli/conf.d/30-xcvb.ini
 date.timezone = 'Europe/Moscow'
 EOF
 
