@@ -7,7 +7,8 @@ if [ $(lsb_release -is) = "Debian" ]; then
   sudo apt-get update
   sudo apt-get -y install apt-transport-https lsb-release ca-certificates curl
   sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-  sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+  #sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+  sudo sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://sury.levmorozov.com/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
   sudo apt-get update
 else
   sudo add-apt-repository -y ppa:ondrej/php
