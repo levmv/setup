@@ -16,6 +16,7 @@ apt-get update
 apt-get install -yq --no-install-recommends openssh-server apt-utils iproute2 iputils-ping dnsutils \
                    lsb-release ca-certificates debconf-utils \
                    gnupg2 git unzip curl wget build-essential nano sudo procps \
+                   fd-find ripgrep \
                    python3-pip python3-venv libssl-dev libffi-dev zstd dirmngr
 
 adduser --disabled-password --uid 1002 --gecos "" --shell /bin/bash $USERN
@@ -38,6 +39,10 @@ echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.co
 
 apt-get update
 apt-get install -y nodejs
+
+# Configure npm to install global packages as user
+su - $USERN -c 'mkdir -p ~/.npm-global && npm config set prefix ~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> /home/$USERN/.profile
 
 # Go
 apt-get install -y golang
