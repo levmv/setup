@@ -1,26 +1,17 @@
 #!/usr/bin/env bash
 
-sudo apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring
-
 curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
     | sudo tee /usr/share/keyrings/nginx-archive-keyring.gpg >/dev/null
 
-
-if ! gpg --dry-run --quiet --no-keyring --import --import-options import-show /usr/share/keyrings/nginx-archive-keyring.gpg \
-   | grep -q  "573BFD6B3D8FBC641079A6ABABF5BD827BD9BF62"; then
-   echo "BAD SIGN"
-   exit 1
-fi
-
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
-http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+http://nginx.org/packages/mainline/debian `lsb_release -cs` nginx" \
     | sudo tee /etc/apt/sources.list.d/nginx.list
 
 echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900\n" \
     | sudo tee /etc/apt/preferences.d/99nginx
 
-sudo apt update
-sudo apt install nginx
+apt update
+apt install -yq nginx
 
 mkdir -p /etc/nginx/certs
 mkdir -p /etc/nginx/sites
@@ -45,10 +36,6 @@ http {
 
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                        '$status $body_bytes_sent "$http_referer" '
-                        '"$http_user_agent" "$http_x_forwarded_for"';
 
     access_log  /var/log/nginx/access.log;
 
