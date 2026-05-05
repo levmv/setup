@@ -10,5 +10,6 @@ openssl x509 -req -SHA384 -days 3650 -extfile <(printf "subjectAltName=DNS:$DOMA
 
 sudo cp $KEY_FILE /etc/nginx/certs/
 sudo cp $CERT_FILE /etc/nginx/certs/
+sudo cat caca.crt >> /etc/nginx/certs/$CERT_FILE
 
 rm $KEY_FILE $CERT_FILE temp.csr
