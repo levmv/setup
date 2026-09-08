@@ -8,15 +8,12 @@ BASHRC="${BASHRC:-$HOME/.bashrc}"
 
 echo "==> Checking requirements"
 
-command -v curl >/dev/null 2>&1 || {
-  echo "error: curl is required" >&2
-  exit 1
-}
-
-command -v podman >/dev/null 2>&1 || {
-  echo "error: podman is required" >&2
-  exit 1
-}
+for required_command in curl podman; do
+  command -v "$required_command" >/dev/null 2>&1 || {
+    echo "error: $required_command is required" >&2
+    exit 1
+  }
+done
 
 echo "==> Installing / updating Dev Containers CLI"
 
@@ -50,8 +47,10 @@ cat > "$HELPERS_FILE" <<'EOF'
 # Override the workspace-derived SSH alias or a non-standard container home:
 #   DC_SSH_ALIAS=my-project dc
 #   DC_REMOTE_HOME=/opt/dev dc
-# Command mode hides successful setup chatter. Show it for one invocation with:
-#   DC_VERBOSE=1 dc go test ./...
+# Show CLI banners and setup JSON for one invocation with DC_VERBOSE=1 dc.
+# Command mode hides all successful setup chatter unless DC_VERBOSE=1.
+# Containers get dc-<project-directory>-<short-container-id> names after up.
+# Explicit runArgs --name and Docker Compose names take precedence.
 
 _dc_workspace() {
   local dir="$PWD"
@@ -67,6 +66,49 @@ _dc_workspace() {
 
   echo "dc: could not find .devcontainer/devcontainer.json or .devcontainer.json in parent directories" >&2
   return 1
+}
+
+_dc_cli() {
+  local subcommand="$1" workspace="$2"
+  local -a local_args=()
+  shift 2
+
+  case "$subcommand" in
+    up | exec)
+      local_args=(
+        --remote-env "LANG=${DC_LANG:-C.UTF-8}"
+        --remote-env "LC_ALL=${DC_LANG:-C.UTF-8}"
+      )
+      if [ -S "${SSH_AUTH_SOCK:-}" ]; then
+        local_args+=(--remote-env "SSH_AUTH_SOCK=/tmp/ssh-agent.sock")
+      fi
+      if [ -d "$HOME/.codex" ]; then
+        local_args+=(--remote-env "CODEX_HOME=$HOME/.codex")
+      fi
+      # Use Claude's default home paths: CLAUDE_CONFIG_DIR also relocates
+      # .claude.json and would hide the separately mounted login state.
+      if [ -d "$HOME/.claude" ]; then
+        local_args+=(--remote-env "DISABLE_AUTOUPDATER=1")
+      fi
+      ;;
+  esac
+
+  set -- devcontainer "$subcommand" \
+    --workspace-folder "$workspace" --docker-path podman \
+    "${local_args[@]}" "$@"
+
+  # Hide only the CLI version banner; keep progress/errors live. A command
+  # executed inside the container must retain its own stderr verbatim.
+  if [ "$subcommand" != "exec" ] && [ "${DC_VERBOSE:-0}" != "1" ]; then
+    # Close the saved stdout FD in both children: background Podman processes
+    # must not inherit it and keep a caller's output capture open.
+    {
+      "$@" 2>&1 1>&3 3>&- | sed -u '/^\[[^]]*\] @devcontainers\/cli /d' >&2 3>&-
+      return "${PIPESTATUS[0]}"
+    } 3>&1
+  else
+    "$@"
+  fi
 }
 
 _dc_project_ssh_dir() {
@@ -129,10 +171,7 @@ _dc_project_ssh_config() {
   local hostname="" ssh_user="" port=""
   local ssh_dir ssh_config known_hosts path
 
-  ssh_alias="${DC_SSH_ALIAS:-$(basename "$workspace")}" || {
-    echo "dc: could not determine the SSH alias for $workspace" >&2
-    return 1
-  }
+  ssh_alias="${DC_SSH_ALIAS:-${workspace##*/}}"
 
   # Host patterns have wildcard semantics, so keep the generated section tied
   # to one literal alias and prevent config-line injection.
@@ -198,6 +237,13 @@ _dc_project_ssh_config() {
     fi
   done
 
+  if [ ! -s "$known_hosts" ] && [ -r "$HOME/.ssh/known_hosts" ]; then
+    if ! cat -- "$HOME/.ssh/known_hosts" >"$known_hosts"; then
+      echo "dc: could not copy host SSH known_hosts to $known_hosts" >&2
+      return 1
+    fi
+  fi
+
   # Rewrite the existing inode: a running container may already have this file
   # bind-mounted and should see host config changes without being rebuilt.
   if ! printf 'Host %s\n    HostName %s\n    User %s\n    Port %s\n' \
@@ -211,22 +257,16 @@ _dc_project_ssh_config() {
 
 _dc_configuration() {
   local workspace="$1"
-  local configuration
 
   command -v jq >/dev/null 2>&1 || {
     echo "dc: jq is required to read the devcontainer configuration" >&2
     return 1
   }
 
-  if ! configuration="$(devcontainer read-configuration \
-    --workspace-folder "$workspace" \
-    --docker-path podman \
-    --include-merged-configuration)"; then
+  _dc_cli read-configuration "$workspace" --include-merged-configuration || {
     echo "dc: could not read devcontainer configuration for $workspace" >&2
     return 1
-  fi
-
-  printf '%s\n' "$configuration"
+  }
 }
 
 # The CLI only turns "appPort" into published ports; "forwardPorts" is an
@@ -292,16 +332,53 @@ _dc_remote_home() {
   printf '%s\n' "$remote_home"
 }
 
+_dc_name_container() {
+  local workspace="$1" container_id="$2" configuration="$3"
+  local container_name current_name
+
+  # Keep explicit/Compose names. Otherwise use the directory and a short ID to
+  # separate worktrees and containers; recreating a container changes the ID.
+  if ! container_name="$(jq -r \
+    --arg project "${workspace##*/}" --arg id "$container_id" '
+    (.mergedConfiguration // .configuration)
+    | if has("dockerComposeFile")
+      or any(.runArgs[]?; . == "--name" or startswith("--name="))
+      then empty
+      else
+        $project | ascii_downcase | gsub("[^a-z0-9_.-]+"; "-")
+        | .[0:48] | gsub("^[._-]+|[._-]+$"; "")
+        | if . == "" then "workspace" else . end
+        | "dc-\(.)-\($id[0:6])"
+      end
+  ' <<<"$configuration")"; then
+    echo "dc: warning: could not generate a container name for $workspace" >&2
+    return 0
+  fi
+  [ -n "$container_name" ] || return 0
+
+  if ! current_name="$(podman inspect --format '{{.Name}}' "$container_id")"; then
+    echo "dc: warning: could not inspect name of container $container_id" >&2
+    return 0
+  fi
+  [ "${current_name#/}" != "$container_name" ] || return 0
+
+  # Naming is cosmetic: a collision or a concurrent removal must not break dc.
+  # CLI lookup and our stop/down helpers continue to use labels and IDs.
+  if ! podman rename "$container_id" "$container_name"; then
+    echo "dc: warning: could not rename container $container_id to $container_name; keeping its current name" >&2
+    return 0
+  fi
+  if [ "${DC_VERBOSE:-0}" = "1" ]; then
+    echo "dc: container $container_name"
+  fi
+}
+
 _dc_up() {
   local workspace="$1"
-  local ssh_dir configuration remote_home forward_ports
-  local -a local_args
+  local ssh_dir configuration remote_home forward_ports path
+  local up_result container_id
+  local -a local_args=()
   shift
-
-  local_args=(
-    --remote-env "LANG=${DC_LANG:-C.UTF-8}"
-    --remote-env "LC_ALL=${DC_LANG:-C.UTF-8}"
-  )
 
   ssh_dir="$(_dc_project_ssh_config "$workspace")" || return 1
   configuration="$(_dc_configuration "$workspace")" || return 1
@@ -317,87 +394,65 @@ _dc_up() {
     --mount "type=bind,source=$ssh_dir,target=$remote_home/.ssh"
   )
 
-  if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ]; then
-    local_args+=(
-      --mount "type=bind,source=$SSH_AUTH_SOCK,target=/tmp/ssh-agent.sock"
-      --remote-env "SSH_AUTH_SOCK=/tmp/ssh-agent.sock"
-    )
+  if [ -S "${SSH_AUTH_SOCK:-}" ]; then
+    local_args+=(--mount "type=bind,source=$SSH_AUTH_SOCK,target=/tmp/ssh-agent.sock")
   fi
 
-  if [ -d "$HOME/.local/bin" ]; then
-    local_args+=(--mount "type=bind,source=$HOME/.local/bin,target=$HOME/.local/bin")
-  fi
+  # Preserve host paths for tools and symlink targets in ~/.local/bin.
+  for path in "$HOME/.local/bin" "$HOME/.codex" "$HOME/.local/share/claude"; do
+    if [ -d "$path" ]; then
+      local_args+=(--mount "type=bind,source=$path,target=$path")
+    fi
+  done
 
-  if [ -d "$HOME/.codex" ]; then
-    local_args+=(
-      --mount "type=bind,source=$HOME/.codex,target=$HOME/.codex"
-      --remote-env "CODEX_HOME=$HOME/.codex"
-    )
-  fi
-
-  if [ -d "$HOME/.skot" ]; then
-    local_args+=(
-      --mount "type=bind,source=$HOME/.skot,target=$remote_home/.skot"
-    )
-  fi
-
-  # Mount the whole config surface at once: settings.json, .credentials.json,
-  # projects/, history.jsonl. Target $remote_home/.claude so it resolves to
-  # ~/.claude in the container, mirroring how .skot and .ssh are mounted. No
-  # CLAUDE_CONFIG_DIR needed: claude's default is ~/.claude.
-  if [ -d "$HOME/.claude" ]; then
-    local_args+=(
-      --mount "type=bind,source=$HOME/.claude,target=$remote_home/.claude"
-      --remote-env "DISABLE_AUTOUPDATER=1"
-    )
-  fi
-
-  # ~/.claude.json is a separate file in the home root (not inside ~/.claude/):
-  # app state, oauthAccount, MCP servers. It must be mounted too, or claude
-  # won't recognize the logged-in account even though .credentials.json exists.
+  # These tools use the container user's home; Claude also needs .claude.json
+  # beside .claude/ to recognize the logged-in account.
+  for path in .skot .claude; do
+    if [ -d "$HOME/$path" ]; then
+      local_args+=(--mount "type=bind,source=$HOME/$path,target=$remote_home/$path")
+    fi
+  done
   if [ -f "$HOME/.claude.json" ]; then
-    local_args+=(
-      --mount "type=bind,source=$HOME/.claude.json,target=$remote_home/.claude.json"
-    )
+    local_args+=(--mount "type=bind,source=$HOME/.claude.json,target=$remote_home/.claude.json")
   fi
 
-  # The claude in ~/.local/bin is a symlink into this directory, so the install
-  # itself has to be visible at the same path for the symlink to resolve.
-  if [ -d "$HOME/.local/share/claude" ]; then
-    local_args+=(
-      --mount "type=bind,source=$HOME/.local/share/claude,target=$HOME/.local/share/claude"
-    )
-  fi
-
-  if ! devcontainer up \
-    --workspace-folder "$workspace" \
-    --docker-path podman \
+  # The CLI writes progress to stderr and its JSON result to stdout. Use the
+  # returned ID so only this container is renamed, even with several configs.
+  if ! up_result="$(_dc_cli up "$workspace" \
     --terminal-columns "${COLUMNS:-120}" \
     --terminal-rows "${LINES:-40}" \
     "${local_args[@]}" \
-    "$@"; then
+    "$@")"; then
+    [ -z "$up_result" ] || printf '%s\n' "$up_result"
     echo "dc: devcontainer up failed; project SSH directory was not mounted from $ssh_dir" >&2
     return 1
+  fi
+  if [ "${DC_VERBOSE:-0}" = "1" ]; then
+    printf '%s\n' "$up_result"
+  fi
+
+  if container_id="$(jq -er '
+    .containerId | select(type == "string" and test("^[0-9a-f]{64}$"))
+  ' <<<"$up_result")"; then
+    _dc_name_container "$workspace" "$container_id" "$configuration"
+  else
+    echo "dc: warning: devcontainer up returned no valid container ID; skipping container naming" >&2
   fi
 
   _dc_print_ports "$workspace" "$forward_ports"
 }
 
-# A command should behave like a local command: its own stdout and stderr stay
-# live, while a successful devcontainer setup remains silent. Preserve the full
-# setup transcript on failure, when it is actionable, and allow an explicit
-# verbose override for diagnosing a slow or surprising `up`.
+# Hide successful setup in command mode; show diagnostics on failure or when
+# DC_VERBOSE=1. The command's own stdout/stderr stay live in _dc_exec.
 _dc_up_quiet() {
-  local workspace="$1"
   local output
-  shift
 
   if [ "${DC_VERBOSE:-0}" = "1" ]; then
-    _dc_up "$workspace" "$@"
+    _dc_up "$@"
     return
   fi
 
-  if ! output="$(_dc_up "$workspace" "$@" 2>&1)"; then
+  if ! output="$(_dc_up "$@" 2>&1)"; then
     [ -z "$output" ] || printf '%s\n' "$output" >&2
     return 1
   fi
@@ -405,51 +460,13 @@ _dc_up_quiet() {
 
 _dc_exec() {
   local workspace="$1"
-  local -a local_args
   shift
 
-  local_args=(
-    --remote-env "LANG=${DC_LANG:-C.UTF-8}"
-    --remote-env "LC_ALL=${DC_LANG:-C.UTF-8}"
-  )
-
-  if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "$SSH_AUTH_SOCK" ]; then
-    local_args+=(--remote-env "SSH_AUTH_SOCK=/tmp/ssh-agent.sock")
-  fi
-
-  if [ -d "$HOME/.codex" ]; then
-    local_args+=(--remote-env "CODEX_HOME=$HOME/.codex")
-  fi
-
-  # Deliberately no CLAUDE_CONFIG_DIR: setting it also relocates .claude.json
-  # into that directory, so claude would ignore the ~/.claude.json mounted by
-  # _dc_up and start a fresh, unauthenticated config. The default (~/.claude
-  # plus ~/.claude.json) already matches how _dc_up mounts them.
-  if [ -d "$HOME/.claude" ]; then
-    local_args+=(--remote-env "DISABLE_AUTOUPDATER=1")
-  fi
-
   if [ -d "$HOME/.local/bin" ]; then
-    devcontainer exec \
-      --workspace-folder "$workspace" \
-      --docker-path podman \
-      "${local_args[@]}" \
-      sh -c 'PATH="$PATH:$1"; export PATH; shift; exec "$@"' \
+    set -- sh -c 'PATH="$PATH:$1"; export PATH; shift; exec "$@"' \
       sh "$HOME/.local/bin" "$@"
-  else
-    devcontainer exec \
-      --workspace-folder "$workspace" \
-      --docker-path podman \
-      "${local_args[@]}" \
-      "$@"
   fi
-}
-
-_dc_container_ids() {
-  local workspace="$1"
-
-  podman ps -aq \
-    --filter "label=devcontainer.local_folder=$workspace"
+  _dc_cli exec "$workspace" "$@"
 }
 
 _dc_print_ports() {
@@ -481,10 +498,10 @@ _dc_print_ports() {
           container_port="${line%% -> *}"
           host_endpoint="${line#* -> }"
           if [ "$printed" -eq 0 ]; then
-            echo "dc: published ports (host -> container):"
+            echo "Ports (host -> container):"
             printed=1
           fi
-          printf '  %s -> %s\n' "$host_endpoint" "$container_port"
+          printf '%s -> %s\n' "$host_endpoint" "$container_port"
           # Keep the bare port number for the forwardPorts cross-check below.
           published="$published${container_port%%/*} "
           ;;
@@ -492,7 +509,7 @@ _dc_print_ports() {
     done <<<"$output"
   done
 
-  [ "$printed" -eq 1 ] || echo "dc: no published ports for $workspace"
+  [ "$printed" -eq 1 ] || echo "No published ports."
 
   # Entries are numbers or "host:container" / "service:port" strings; the
   # container-side port is what podman publishes, so compare on that.
@@ -520,45 +537,33 @@ dc() {
 
   if [ "$#" -eq 0 ]; then
     _dc_up "$workspace" || return 1
-    _dc_exec "$workspace" \
-      sh -lc 'command -v bash >/dev/null 2>&1 && exec bash || exec sh'
+    set -- sh -lc 'command -v bash >/dev/null 2>&1 && exec bash || exec sh'
   else
     _dc_up_quiet "$workspace" || return 1
-    _dc_exec "$workspace" "$@"
   fi
+  _dc_exec "$workspace" "$@"
 }
 
-dcstop() {
-  local workspace output
+_dc_container_action() {
+  local caller="$1" workspace output
   local -a ids
+  shift
 
   workspace="$(_dc_workspace)" || return 1
-  output="$(_dc_container_ids "$workspace")" || return 1
+  output="$(podman ps -aq --filter "label=devcontainer.local_folder=$workspace")" || return 1
 
   if [ -z "$output" ]; then
-    echo "dcstop: no dev container found for $workspace"
+    echo "$caller: no dev container found for $workspace"
     return 0
   fi
 
   readarray -t ids <<<"$output"
-  podman stop "${ids[@]}"
+  podman "$@" "${ids[@]}"
 }
 
-dcdown() {
-  local workspace output
-  local -a ids
+dcstop() { _dc_container_action dcstop stop; }
 
-  workspace="$(_dc_workspace)" || return 1
-  output="$(_dc_container_ids "$workspace")" || return 1
-
-  if [ -z "$output" ]; then
-    echo "dcdown: no dev container found for $workspace"
-    return 0
-  fi
-
-  readarray -t ids <<<"$output"
-  podman rm -f "${ids[@]}"
-}
+dcdown() { _dc_container_action dcdown rm -f; }
 
 dcre() {
   local workspace
@@ -572,9 +577,7 @@ dcread() {
 
   workspace="$(_dc_workspace)" || return 1
 
-  devcontainer read-configuration \
-    --workspace-folder "$workspace" \
-    --docker-path podman
+  _dc_cli read-configuration "$workspace"
 }
 EOF
 
