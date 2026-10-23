@@ -68,9 +68,38 @@ _dc_workspace() {
   return 1
 }
 
+_dc_terminal_log() {
+  # JSON keeps raw progress chunks intact even when stdout is captured. Flush
+  # each event without adding newlines to raw output (carriage returns/ANSI).
+  # CLI failures can also write plain stderr, so pass non-events through.
+  jq --unbuffered -Rj --arg verbose "${DC_VERBOSE:-0}" '
+    . as $line
+    | (try fromjson catch null) as $event
+    | if ($event | type) != "object" then
+        $line + "\n"
+      elif $event.type == "progress" then
+        empty
+      elif (["text", "raw", "start", "stop"] | index($event.type)) == null
+        or ($event.text | type) != "string"
+        or ($event.level | type) != "number" then
+        $line + "\n"
+      elif $event.level < 3 or $event.type == "stop" then
+        empty
+      elif $event.type == "raw" then
+        $event.text
+      elif $verbose != "1" and $event.type == "text"
+        and ($event.text | startswith("@devcontainers/cli ")) then
+        empty
+      else
+        (if $event.type == "start" then "Start: " else "" end)
+        + ($event.text | sub("\r?\n$"; "")) + "\n"
+      end
+  '
+}
+
 _dc_cli() {
   local subcommand="$1" workspace="$2"
-  local -a local_args=()
+  local -a local_args=() log_status=()
   shift 2
 
   case "$subcommand" in
@@ -96,6 +125,21 @@ _dc_cli() {
   set -- devcontainer "$subcommand" \
     --workspace-folder "$workspace" --docker-path podman \
     "${local_args[@]}" "$@"
+
+  # The CLI chooses its text logger using stdout.isTTY, but up's stdout is
+  # captured for its JSON result. Render JSON log events ourselves when the
+  # destination is a terminal; retain plain logs for redirects/quiet setup.
+  if [ "$subcommand" = "up" ] && [ -t 2 ]; then
+    {
+      if "$@" --log-format json 2>&1 1>&3 3>&- | _dc_terminal_log >&2 3>&-; then
+        log_status=("${PIPESTATUS[@]}")
+      else
+        log_status=("${PIPESTATUS[@]}")
+      fi
+      [ "${log_status[0]}" -eq 0 ] || return "${log_status[0]}"
+      return "${log_status[1]}"
+    } 3>&1
+  fi
 
   # Hide only the CLI version banner; keep progress/errors live. A command
   # executed inside the container must retain its own stderr verbatim.
